@@ -141,14 +141,15 @@ Library
     Heist.Splices.Ignore,
     Heist.Splices.Json,
     Heist.Splices.Markdown,
-    Heist.TemplateDirectory
+    Heist.TemplateDirectory,
 
-  other-modules:
-    Data.HeterogeneousEnvironment,
     Heist.Common,
     Heist.Compiled.Internal,
     Heist.Internal.Types.HeistState,
     Heist.Interpreted.Internal
+
+  other-modules:
+    Data.HeterogeneousEnvironment
 
   build-depends:
     aeson                      >= 0.6     && < 1.3,
