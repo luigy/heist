@@ -24,7 +24,8 @@ module Heist.Splices.Cache
   ) where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder
+-- import           Blaze.ByteString.Builder
+import           Data.Text.Internal.Builder
 import           Control.Concurrent
 import           Control.Monad
 import           Control.Monad.Trans
@@ -140,7 +141,8 @@ cacheImplCompiled cts = do
     liftIO $ addCompiledRef ref cts
     let reload curTime = do
             builder <- C.codeGen compiled
-            let out = fromByteString $! toByteString $! builder
+            -- let out = fromByteString $! toByteString $! builder
+            let out = builder
             liftIO $ writeIORef ref (Just (curTime, out))
             return $! out
     return $ C.yieldRuntime $ do

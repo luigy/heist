@@ -11,8 +11,8 @@ module Heist.Compiled.Internal where
 
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder
-import           Blaze.ByteString.Builder.Char.Utf8
+-- import           Blaze.ByteString.Builder
+-- import           Blaze.ByteString.Builder.Char.Utf8
 import           Control.Arrow
 import           Control.Exception
 import           Control.Monad
@@ -20,6 +20,7 @@ import           Control.Monad.RWS.Strict
 import           Control.Monad.State.Strict
 import qualified Data.Attoparsec.Text               as AP
 import           Data.ByteString                    (ByteString)
+import qualified Data.ByteString.Lazy               as BL
 import           Data.DList                         (DList)
 import qualified Data.DList                         as DL
 import qualified Data.HashMap.Strict                as H
@@ -28,12 +29,15 @@ import qualified Data.HeterogeneousEnvironment      as HE
 import           Data.Map.Syntax
 import           Data.Maybe
 import           Data.Text                          (Text)
+import           Data.Text.Internal.Builder
 import qualified Data.Text                          as T
 import qualified Data.Text.Encoding                 as T
+import qualified Data.Text.Lazy                     as TL
 import qualified Data.Vector                        as V
 import           Text.Printf
 import qualified Text.XmlHtml                       as X
 import qualified Text.XmlHtml.HTML.Meta             as X
+-- import qualified Text.XmlHtml.HTML.Render           as HTML
 ------------------------------------------------------------------------------
 #if !MIN_VERSION_base(4,8,0)
 import           Data.Foldable                      (Foldable)
@@ -73,7 +77,8 @@ renderFragment :: Markup -> [X.Node] -> Builder
 renderFragment markup ns =
     case markup of
       Html -> X.renderHtmlFragment X.UTF8 ns
-      Xml  -> X.renderXmlFragment X.UTF8 ns
+      -- Xml  -> X.renderXmlFragment X.UTF8 ns
+      Xml  -> X.renderHtmlFragment X.UTF8 ns -- FIXME
 
 
 ------------------------------------------------------------------------------
@@ -88,7 +93,8 @@ pureTextChunk t = Pure $ T.encodeUtf8 t
 -- 'yieldPureText' as much as possible to maximize the parts of your page that
 -- can be compiled to static ByteStrings.
 yieldPure :: Builder -> DList (Chunk n)
-yieldPure = DL.singleton . Pure . toByteString
+-- yieldPure = DL.singleton . Pure . toByteString
+yieldPure = DL.singleton . Pure . T.encodeUtf8 . TL.toStrict . toLazyText
 {-# INLINE yieldPure #-}
 
 
@@ -146,7 +152,8 @@ runDocumentFile tpath df = do
     res <- runNodeList nodes
     dt <- getsHS (listToMaybe . _doctypes)
     let enc = X.docEncoding $ dfDoc df
-    return $! (yieldPure (X.renderDocType enc dt) `mappend` res)
+    -- return $! (yieldPure (HTML.docTypeDecl enc dt) `mappend` res)
+    return $! (yieldPure ("") `mappend` res)
   where
     curPath     = dfFile df
     nodes       = X.docContent $! dfDoc df
@@ -263,7 +270,7 @@ codeGen l = V.foldr mappend mempty $!
             V.map toAct $! V.fromList $! consolidate l
   where
     toAct !(RuntimeHtml !m)   = m
-    toAct !(Pure !h)          = return $! fromByteString h
+    toAct !(Pure !h)          = return $! fromText $ T.decodeUtf8 h
     toAct !(RuntimeAction !m) = m >> return mempty
 {-# INLINE codeGen #-}
 
@@ -518,7 +525,8 @@ getAttributeSplice2 name = do
       Nothing -> return $ return $ T.concat ["${", name, "}"]
       Just splice -> do
         res <- splice
-        return $ liftM (T.decodeUtf8 . toByteString) $ codeGen res
+        -- return $ liftM (T.decodeUtf8 . toByteString) $ codeGen res
+        return $ liftM (TL.toStrict . toLazyText) $ codeGen res
 {-# INLINE getAttributeSplice2 #-}
 
 
@@ -667,7 +675,7 @@ nodeSplice f = X.renderHtmlFragment X.UTF8 . f
 -- | Converts a pure XML Node splice function to a pure Builder splice
 -- function.
 xmlNodeSplice :: (a -> [X.Node]) -> a -> Builder
-xmlNodeSplice f = X.renderXmlFragment X.UTF8 . f
+xmlNodeSplice f = undefined -- X.renderXmlFragment X.UTF8 . f
 
 
 ------------------------------------------------------------------------------

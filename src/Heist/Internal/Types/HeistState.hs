@@ -21,7 +21,8 @@ liberating us from the unused writer portion of RWST.
 module Heist.Internal.Types.HeistState where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder      (Builder)
+-- import           Blaze.ByteString.Builder      (Builder)
+import           Data.Text.Internal.Builder      (Builder)
 import           Control.Applicative           (Alternative (..))
 import           Control.Arrow                 (first)
 import           Control.Exception             (Exception)
